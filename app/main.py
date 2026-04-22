@@ -262,6 +262,23 @@ def update_quote(quote_id: int, quote: schemas.QuoteCreate, db: Session = Depend
     db.commit()
     return {"status": "success", "message": f"Quote hari {quote.hari} berhasil diperbarui"}
 
+
+@app.get("/admin/quotes/filter", response_model=schemas.QuoteResponse)
+def get_quote_by_hari(hari: str, db: Session = Depends(database.get_db)):
+    # Gunakan func.lower agar pencarian "Rabu" atau "rabu" tetap ketemu
+    quote = db.query(models.QuotesHarian).filter(
+        func.lower(models.QuotesHarian.hari) == hari.lower()
+    ).first()
+    
+    if not quote:
+        # Jika tidak ada untuk hari tersebut, ambil satu secara acak
+        quote = db.query(models.QuotesHarian).order_by(func.random()).first()
+        
+    if not quote:
+        raise HTTPException(status_code=404, detail="Database quote kosong")
+        
+    return quote
+
 @app.delete("/admin/quotes/{quote_id}")
 def delete_quote(quote_id: int, db: Session = Depends(database.get_db)):
     db_quote = db.query(models.QuotesHarian).filter(models.QuotesHarian.id == quote_id).first()
@@ -379,10 +396,10 @@ def update_status_bimbingan(bimbingan_id: int, req: schemas.UpdateStatusRequest,
         db.rollback()
         return {"status": "error", "message": str(e)}
     
+# --- PERBAIKAN STATUS BIMBINGAN (Agar Nama Guru Muncul di Android) ---
 @app.get("/rest/v1/bimbingan/status/{user_id}")
 def get_status_bimbingan_santri(user_id: str, db: Session = Depends(database.get_db)):
     try:
-        # Kita JOIN ke tabel users untuk mendapatkan nama guru (pembimbing)
         query = text("""
             SELECT b.status, u.nama_lengkap as nama_guru
             FROM bimbingan b
@@ -400,7 +417,7 @@ def get_status_bimbingan_santri(user_id: str, db: Session = Depends(database.get
             "status": "success", 
             "data": [{
                 "status": result[0],
-                "nama_santri": result[1] or "Ustadz/ah" # Kita gunakan key 'nama_santri' agar cocok dengan model Android kamu sebelumnya
+                "nama_guru": result[1] or "Ustadz/ah" # GANTI KEY MENJADI nama_guru
             }]
         }
     except Exception as e:
