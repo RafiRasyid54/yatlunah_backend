@@ -482,3 +482,16 @@ def simpan_progres_latihan(progres: schemas.ProgresLatihanCreate, db: Session = 
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
+    
+@app.get("/latihan-soal/all", response_model=list[schemas.LatihanSoalResponse])
+def get_all_soal(db: Session = Depends(database.get_db)):
+    return db.query(models.LatihanSoal).all()
+
+@app.delete("/latihan-soal/{soal_id}")
+def delete_soal(soal_id: int, db: Session = Depends(database.get_db)):
+    soal = db.query(models.LatihanSoal).filter(models.LatihanSoal.id == soal_id).first()
+    if not soal:
+        raise HTTPException(status_code=404, detail="Soal tidak ditemukan")
+    db.delete(soal)
+    db.commit()
+    return {"message": "Soal berhasil dihapus"}
