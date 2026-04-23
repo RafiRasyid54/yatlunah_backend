@@ -1,6 +1,7 @@
 from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 from typing import Optional
+from typing import List, Optional
 from uuid import UUID
 from datetime import date
 
@@ -101,3 +102,21 @@ class TerimaBimbinganRequest(BaseModel):
 class UpdateStatusRequest(BaseModel):
     status: str 
     id_guru: Optional[str] = None  
+
+class LatihanSoalCreate(BaseModel):
+    jilid_id: int
+    halaman_target: int
+    kategori: Optional[str] = None
+    pertanyaan: str
+    pilihan_jawaban: List[str]
+    kunci_jawaban: str
+
+class LatihanSoalResponse(LatihanSoalCreate):
+    id: int
+    model_config = ConfigDict(from_attributes=True)
+
+class ProgresLatihanCreate(BaseModel):
+    user_id: UUID
+    jilid_id: int
+    halaman_latihan: int
+    skor: int

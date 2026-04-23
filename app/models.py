@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, TIMESTAMP, text, ForeignKey, Date, Boolean, Text, DateTime
 from sqlalchemy.dialects.postgresql import UUID 
 from sqlalchemy.sql import func
+from sqlalchemy.dialects.postgresql import JSONB
 from .database import Base
 
 # --- 1. TABEL USERS ---
@@ -87,3 +88,26 @@ class QuotesHarian(Base):
     sumber = Column(String)
     # Gunakan 'hari' agar sesuai dengan gambar database Anda
     hari = Column(String, nullable=True)
+
+    class LatihanSoal(Base):
+        __tablename__ = "latihan_soal"
+
+    id = Column(Integer, primary_key=True, index=True)
+    jilid_id = Column(Integer, nullable=False)
+    halaman_target = Column(Integer, nullable=False)
+    kategori = Column(String, nullable=True)
+    pertanyaan = Column(String, nullable=False)
+    pilihan_jawaban = Column(JSONB, nullable=False) # Menggunakan JSONB untuk array pilihan ganda
+    kunci_jawaban = Column(String, nullable=False)
+    created_at = Column(TIMESTAMP, server_default=func.now())
+
+# --- 9. TABEL PROGRES LATIHAN ---
+class ProgresLatihan(Base):
+    __tablename__ = "progres_latihan"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False)
+    jilid_id = Column(Integer, nullable=False)
+    halaman_latihan = Column(Integer, nullable=False)
+    skor = Column(Integer, nullable=False)
+    created_at = Column(TIMESTAMP, server_default=func.now())

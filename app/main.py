@@ -422,3 +422,63 @@ def get_status_bimbingan_santri(user_id: str, db: Session = Depends(database.get
         }
     except Exception as e:
         return {"status": "error", "message": str(e)}
+    
+@app.post("/latihan-soal", response_model=schemas.LatihanSoalResponse)
+def tambah_soal_latihan(soal: schemas.LatihanSoalCreate, db: Session = Depends(database.get_db)):
+    try:
+        new_soal = models.LatihanSoal(
+            jilid_id=soal.jilid_id,
+            halaman_target=soal.halaman_target,
+            kategori=soal.kategori,
+            pertanyaan=soal.pertanyaan,
+            pilihan_jawaban=soal.pilihan_jawaban,
+            kunci_jawaban=soal.kunci_jawaban
+        )
+        db.add(new_soal)
+        db.commit()
+        db.refresh(new_soal)
+        return new_soal
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Endpoint 2: Untuk Santri mengecek soal di halaman tertentu (PDF Viewer)
+@app.get("/latihan-soal/check", response_model=list[schemas.LatihanSoalResponse])
+def get_soal_by_mapping(jilid: int, halaman: int, db: Session = Depends(database.get_db)):
+    soal_list = db.query(models.LatihanSoal).filter(
+        models.LatihanSoal.jilid_id == jilid,
+        models.LatihanSoal.halaman_target == halaman
+    ).all()
+    
+    # Akan mengembalikan list kosong [] jika tidak ada soal di halaman tersebut
+    return soal_list
+
+# Endpoint 3: Untuk menyimpan hasil skor latihan Santri
+@app.post("/latihan-soal/progres")
+def simpan_progres_latihan(progres: schemas.ProgresLatihanCreate, db: Session = Depends(database.get_db)):
+    # Cek apakah santri sudah pernah mengerjakan latihan di halaman ini
+    existing_progres = db.query(models.ProgresLatihan).filter(
+        models.ProgresLatihan.user_id == progres.user_id,
+        models.ProgresLatihan.jilid_id == progres.jilid_id,
+        models.ProgresLatihan.halaman_latihan == progres.halaman_latihan
+    ).first()
+
+    if existing_progres:
+        # Jika mengulang latihan, update skornya
+        existing_progres.skor = progres.skor
+    else:
+        # Jika baru pertama kali mengerjakan, buat data baru
+        new_progres = models.ProgresLatihan(
+            user_id=progres.user_id,
+            jilid_id=progres.jilid_id,
+            halaman_latihan=progres.halaman_latihan,
+            skor=progres.skor
+        )
+        db.add(new_progres)
+    
+    try:
+        db.commit()
+        return {"status": "success", "message": "Progres latihan berhasil disimpan"}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
