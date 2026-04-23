@@ -80,31 +80,28 @@ class Setoran(Base):
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
 # --- 7. TABEL QUOTES HARIAN ---
-# Contoh di models.py
 class QuotesHarian(Base):
     __tablename__ = "quotes_harian"
     id = Column(Integer, primary_key=True, index=True)
     teks_quote = Column(String)
     sumber = Column(String)
-    # Gunakan 'hari' agar sesuai dengan gambar database Anda
     hari = Column(String, nullable=True)
 
-    class LatihanSoal(Base):
-        __tablename__ = "latihan_soal"
-
-    id = Column(Integer, primary_key=True, index=True)
+# --- 8. TABEL LATIHAN SOAL (Dikeluarkan dari QuotesHarian) ---
+class LatihanSoal(Base):
+    __tablename__ = "latihan_soal"
+    id = Column(Integer, primary_key=True, index=True) # Pastikan id ada di sini
     jilid_id = Column(Integer, nullable=False)
     halaman_target = Column(Integer, nullable=False)
     kategori = Column(String, nullable=True)
     pertanyaan = Column(String, nullable=False)
-    pilihan_jawaban = Column(JSONB, nullable=False) # Menggunakan JSONB untuk array pilihan ganda
+    pilihan_jawaban = Column(JSONB, nullable=False) 
     kunci_jawaban = Column(String, nullable=False)
     created_at = Column(TIMESTAMP, server_default=func.now())
 
 # --- 9. TABEL PROGRES LATIHAN ---
 class ProgresLatihan(Base):
     __tablename__ = "progres_latihan"
-
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False)
     jilid_id = Column(Integer, nullable=False)
