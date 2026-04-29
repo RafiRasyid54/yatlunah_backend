@@ -170,16 +170,25 @@ def get_users_count(db: Session = Depends(database.get_db)):
         "admin": a
     }
 
+
+
 @app.get("/admin/users/{role}")
-def get_users_by_role(role: str, id_mitra: Optional[str] = None, db: Session = Depends(database.get_db)):
-    # Query dasar untuk filter berdasarkan role
-    query = db.query(models.User).filter(func.trim(func.lower(models.User.role)) == role.lower().strip())
+def get_users_by_role(
+    role: str, 
+    id_mitra: Optional[str] = None, # ✅ Tambahkan parameter id_mitra
+    db: Session = Depends(database.get_db)
+):
+    # 1. Buat query dasar berdasarkan role
+    query = db.query(models.User).filter(
+        func.trim(func.lower(models.User.role)) == role.lower().strip()
+    )
     
-    # ✅ JIKA id_mitra DIKIRIM DARI ANDROID, FILTER DATANYA!
+    # 2. FILTER: Jika ada id_mitra (berarti login sebagai adminmitra), saring datanya!
     if id_mitra:
         query = query.filter(models.User.id_mitra == id_mitra)
         
     return query.all()
+
 @app.put("/admin/users/{user_id}/role")
 def update_role_admin(user_id: str, new_role: str, db: Session = Depends(database.get_db)):
     user = db.query(models.User).filter(models.User.user_id == user_id).first()
