@@ -9,7 +9,8 @@ from datetime import date
 class UserBase(BaseModel):
     email: str
     nama_lengkap: str
-    role: Optional[str] = "peserta" 
+    role: Optional[str] = "santri"
+    id_mitra: Optional[str] = None 
 
 class UserCreate(UserBase):
     password: str

@@ -7,6 +7,7 @@ from datetime import date, timedelta
 from . import models, schemas, auth, database
 from pydantic import BaseModel 
 from app.database import get_db  # Import fungsi get_db kamu
+from typing import Optional # Pastikan import ini ada di bagian atas main.py
 
 app = FastAPI(title="Yatlunah API Gateway")
 
@@ -29,11 +30,12 @@ def register_user(user: schemas.UserCreate, db: Session = Depends(database.get_d
     if existing_user:
         raise HTTPException(status_code=400, detail="Email sudah terdaftar")
     
-    # --- LOGIKA MAPPING ROLE_ID OTOMATIS ---
     role_name = user.role.lower().strip() if user.role else "santri"
     
     if role_name == "admin":
         r_id = 3
+    elif role_name == "adminmitra": # ✅ TAMBAHKAN LOGIKA UNTUK ADMIN MITRA
+        r_id = 4
     elif role_name == "guru":
         r_id = 2
     else:
@@ -45,7 +47,8 @@ def register_user(user: schemas.UserCreate, db: Session = Depends(database.get_d
         email=user.email,
         password_hash=auth.hash_password(user.password),
         role=role_name,
-        role_id=r_id  # Memastikan ID tidak default ke 1 terus
+        role_id=r_id,
+        id_mitra=user.id_mitra # ✅ SIMPAN ID MITRA KE DATABASE
     )
     
     db.add(new_user)
@@ -59,7 +62,6 @@ def login_user(user: schemas.UserLogin, db: Session = Depends(database.get_db)):
     if not db_user or not auth.verify_password(user.password, db_user.password_hash):
         raise HTTPException(status_code=401, detail="Email atau password salah")
     
-    # Ambil role dan pastikan bersih (trim & lowercase)
     clean_role = db_user.role.lower().strip()
     
     return {
@@ -67,7 +69,8 @@ def login_user(user: schemas.UserLogin, db: Session = Depends(database.get_db)):
         "user_id": str(db_user.user_id), 
         "nama_lengkap": db_user.nama_lengkap,
         "email": db_user.email,
-        "role": clean_role # Ini yang dikirim ke Android
+        "role": clean_role,
+        "id_mitra": str(db_user.id_mitra) if db_user.id_mitra else None # ✅ TAMBAHKAN BARIS INI
     }
 
 # --- 2. JILID & MATERI ---
@@ -168,9 +171,15 @@ def get_users_count(db: Session = Depends(database.get_db)):
     }
 
 @app.get("/admin/users/{role}")
-def get_users_by_role(role: str, db: Session = Depends(database.get_db)):
-    return db.query(models.User).filter(func.trim(func.lower(models.User.role)) == role.lower().strip()).all()
-
+def get_users_by_role(role: str, id_mitra: Optional[str] = None, db: Session = Depends(database.get_db)):
+    # Query dasar untuk filter berdasarkan role
+    query = db.query(models.User).filter(func.trim(func.lower(models.User.role)) == role.lower().strip())
+    
+    # ✅ JIKA id_mitra DIKIRIM DARI ANDROID, FILTER DATANYA!
+    if id_mitra:
+        query = query.filter(models.User.id_mitra == id_mitra)
+        
+    return query.all()
 @app.put("/admin/users/{user_id}/role")
 def update_role_admin(user_id: str, new_role: str, db: Session = Depends(database.get_db)):
     user = db.query(models.User).filter(models.User.user_id == user_id).first()
