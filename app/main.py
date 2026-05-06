@@ -25,22 +25,24 @@ def read_root():
 # --- 1. AUTHENTICATION ---
 
 @app.post("/register", status_code=status.HTTP_201_CREATED, response_model=schemas.UserResponse)
-def register_user(user: schemas.UserCreate, db: Session = Depends(database.get_db)):
+def register_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     existing_user = db.query(models.User).filter(models.User.email == user.email).first()
     if existing_user:
         raise HTTPException(status_code=400, detail="Email sudah terdaftar")
     
-    role_name = user.role.lower().strip() if user.role else "santri"
+    # Standarisasi Role Input
+    role_input = user.role.lower().strip() if user.role else "santri"
     
-    if role_name == "admin":
-        r_id = 3
-    elif role_name == "adminmitra": # ✅ TAMBAHKAN LOGIKA UNTUK ADMIN MITRA
-        r_id = 4
-    elif role_name == "guru":
-        r_id = 2
-    else:
-        role_name = "santri"
-        r_id = 1
+    # Mapping Role ke ID (Sesuaikan dengan tabel roles Anda)
+    role_mapping = {
+        "admin": (3, "admin"),
+        "adminmitra": (4, "adminmitra"),
+        "admin_mitra": (4, "adminmitra"), # Aliasing untuk fleksibilitas
+        "guru": (2, "guru"),
+        "santri": (1, "santri")
+    }
+    
+    r_id, role_name = role_mapping.get(role_input, (1, "santri"))
 
     new_user = models.User(
         nama_lengkap=user.nama_lengkap,
@@ -48,7 +50,7 @@ def register_user(user: schemas.UserCreate, db: Session = Depends(database.get_d
         password_hash=auth.hash_password(user.password),
         role=role_name,
         role_id=r_id,
-        id_mitra=user.id_mitra # ✅ SIMPAN ID MITRA KE DATABASE
+        id_mitra=user.id_mitra 
     )
     
     db.add(new_user)
@@ -57,22 +59,19 @@ def register_user(user: schemas.UserCreate, db: Session = Depends(database.get_d
     return new_user
 
 @app.post("/login")
-def login_user(user: schemas.UserLogin, db: Session = Depends(database.get_db)):
+def login_user(user: schemas.UserLogin, db: Session = Depends(get_db)):
     db_user = db.query(models.User).filter(models.User.email == user.email).first()
     if not db_user or not auth.verify_password(user.password, db_user.password_hash):
         raise HTTPException(status_code=401, detail="Email atau password salah")
-    
-    clean_role = db_user.role.lower().strip()
     
     return {
         "status": "success", 
         "user_id": str(db_user.user_id), 
         "nama_lengkap": db_user.nama_lengkap,
         "email": db_user.email,
-        "role": clean_role,
-        "id_mitra": str(db_user.id_mitra) if db_user.id_mitra else None # ✅ TAMBAHKAN BARIS INI
+        "role": db_user.role.lower().strip(),
+        "id_mitra": str(db_user.id_mitra) if db_user.id_mitra else None 
     }
-
 # --- 2. JILID & MATERI ---
 @app.get("/jilid/list")
 def get_all_jilid(db: Session = Depends(database.get_db)):
