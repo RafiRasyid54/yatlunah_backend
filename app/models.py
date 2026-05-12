@@ -15,7 +15,8 @@ class User(Base):
     role_id = Column(Integer, default=1) # 1: Peserta, 2: Guru, 3: Admin
     role = Column(String, default="peserta") # 'peserta', 'guru', 'admin', 'mitra'
     id_mitra = Column(UUID(as_uuid=True), ForeignKey("mitra.id", ondelete="SET NULL"), nullable=True)
-    created_at = Column(TIMESTAMP, server_default=func.now())
+    created_at = Column(TIMESTAMP, server_default=func.now()),
+    id_guru = Column(String, nullable=True)
 
 # --- 2. TABEL MITRA ---
 class Mitra(Base):

@@ -174,7 +174,7 @@ def get_users_count(db: Session = Depends(database.get_db)):
 @app.get("/admin/users/{role}")
 def get_users_by_role(
     role: str, 
-    id_mitra: Optional[str] = None, # ✅ Tambahkan parameter id_mitra
+    id_mitra: Optional[str] = None, # <--- Menggunakan id_mitra
     db: Session = Depends(database.get_db)
 ):
     # 1. Buat query dasar berdasarkan role
@@ -512,3 +512,36 @@ def delete_soal(soal_id: int, db: Session = Depends(database.get_db)):
     db.delete(soal)
     db.commit()
     return {"message": "Soal berhasil dihapus"}
+
+#admin mitra
+
+# Endpoint untuk mendapatkan daftar kelompok berdasarkan Guru (untuk Admin Mitra)
+@app.get("/admin/mitra/{id_mitra}/groups")
+def get_mitra_groups(id_mitra: str, db: Session = Depends(get_db)):
+    # Ambil semua user dengan role guru di mitra tersebut
+    teachers = db.query(models.User).filter(
+        models.User.id_mitra == id_mitra,
+        models.User.role == "guru"
+    ).all()
+    
+    result = []
+    for t in teachers:
+        # Hitung jumlah santri yang memiliki id_guru sama dengan user_id guru ini
+        count = db.query(models.User).filter(models.User.id_guru == str(t.user_id)).count()
+        result.append({
+            "guru_id": str(t.user_id),
+            "nama_guru": t.nama_lengkap,
+            "jumlah_santri": count
+        })
+    return result
+
+# Endpoint untuk mendapatkan detail anggota kelompok
+@app.get("/admin/mitra/groups/{guru_id}/students")
+def get_group_detail(guru_id: str, db: Session = Depends(get_db)):
+    teacher = db.query(models.User).filter(models.User.user_id == guru_id).first()
+    students = db.query(models.User).filter(models.User.id_guru == guru_id).all()
+    
+    return {
+        "nama_guru": teacher.nama_lengkap if teacher else "Unknown",
+        "students": students
+    }
