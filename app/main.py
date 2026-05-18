@@ -279,6 +279,25 @@ def update_quote(quote_id: int, quote: schemas.QuoteCreate, db: Session = Depend
     db.commit()
     return {"status": "success", "message": f"Quote hari {quote.hari} berhasil diperbarui"}
 
+@app.get("/admin/statistik", response_model=schemas.AdminStatsResponse)
+def get_dashboard_stats(db: Session = Depends(database.get_db)):
+    # Hitung jumlah santri
+    total_santri = db.query(models.User).filter(models.User.role.ilike("santri")).count()
+    
+    # Hitung jumlah guru
+    total_guru = db.query(models.User).filter(models.User.role.ilike("guru")).count()
+    
+    # Hitung total semua user di dalam sistem (Termasuk admin, admin_mitra, dll)
+    total_user = db.query(models.User).count()
+    
+    # Jika totalUser hanya ingin menjumlahkan guru + santri saja, Anda bisa ubah menjadi:
+    # total_user = total_santri + total_guru
+
+    return {
+        "totalUser": total_user,
+        "totalGuru": total_guru,
+        "totalSantri": total_santri
+    }
 
 @app.get("/admin/quotes/filter", response_model=schemas.QuoteResponse)
 def get_quote_by_hari(hari: str, db: Session = Depends(database.get_db)):

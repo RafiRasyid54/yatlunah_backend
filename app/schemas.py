@@ -76,6 +76,11 @@ class UserStatsResponse(BaseModel):
 
     # --- QUOTES SCHEMAS ---
 
+class AdminStatsResponse(BaseModel):
+    totalUser: int
+totalGuru: int
+totalSantri: int
+
 class QuoteCreate(BaseModel):
     teks_quote: str
     sumber: str
