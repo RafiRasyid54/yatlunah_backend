@@ -78,8 +78,9 @@ class UserStatsResponse(BaseModel):
 
 class AdminStatsResponse(BaseModel):
     totalUser: int
-totalGuru: int
-totalSantri: int
+    totalGuru: int
+    totalSantri: int
+    totalMitra: int # ✅ TAMBAHKAN INI
 
 class QuoteCreate(BaseModel):
     teks_quote: str
