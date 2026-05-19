@@ -82,6 +82,11 @@ class AdminStatsResponse(BaseModel):
     totalSantri: int
     totalMitra: int # ✅ TAMBAHKAN INI
 
+class MitraStatsResponse(BaseModel):
+    total_guru: int
+    total_santri: int
+    total_user: int
+    
 class QuoteCreate(BaseModel):
     teks_quote: str
     sumber: str

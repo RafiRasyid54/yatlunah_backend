@@ -564,21 +564,47 @@ def get_group_detail(guru_id: str, db: Session = Depends(get_db)):
 
 @app.get("/mitra/{id_mitra}")
 def get_mitra_info(id_mitra: str, db: Session = Depends(database.get_db)):
-    # 1. Jika id_mitra "0", langsung kembalikan default tanpa query database
-    if id_mitra == "0" or not id_mitra:
+    # Validasi UUID
+    try:
+        valid_uuid = uuid.UUID(id_mitra)
+    except ValueError:
+        return {"id": "0", "nama_lembaga": "Lembaga Pusat / Default", "kota": ""}
+
+    mitra = db.query(models.Mitra).filter(models.Mitra.id == str(valid_uuid)).first()
+    if not mitra:
         return {"id": "0", "nama_lembaga": "Lembaga Pusat / Default", "kota": ""}
         
+    return {
+        "id": str(mitra.id),
+        "nama_lembaga": mitra.nama_lembaga,
+        "kota": mitra.kota
+    }
+
+# Endpoint untuk Statistik Mitra (Real-time jumlah guru & santri di lembaga spesifik)
+import uuid # Pastikan ini ada di bagian atas file jika belum ada
+
+@app.get("/mitra/{id_mitra}/statistik", response_model=schemas.MitraStatsResponse)
+def get_mitra_statistik(id_mitra: str, db: Session = Depends(database.get_db)):
+    # 1. Validasi apakah id_mitra adalah format UUID yang benar
     try:
-        # 2. Query ke database
-        mitra = db.query(models.Mitra).filter(models.Mitra.id == id_mitra).first()
-        if not mitra:
-            return {"id": "0", "nama_lembaga": "Lembaga Tidak Ditemukan", "kota": ""}
-            
-        return {
-            "id": str(mitra.id),
-            "nama_lembaga": mitra.nama_lembaga,
-            "kota": mitra.kota
-        }
-    except Exception as e:
-        # 3. Tangkap error jika format UUID tidak valid
-        return {"id": "0", "nama_lembaga": "Format ID Salah", "kota": ""}
+        valid_uuid = uuid.UUID(id_mitra)
+    except ValueError:
+        # Jika id_mitra = "0" atau string ngawur, kembalikan 0 langsung (menghindari error server)
+        return {"total_guru": 0, "total_santri": 0, "total_user": 0}
+
+    # 2. Jika UUID valid, baru hitung ke database
+    total_guru = db.query(models.User).filter(
+        models.User.id_mitra == str(valid_uuid), 
+        models.User.role.ilike("guru")
+    ).count()
+    
+    total_santri = db.query(models.User).filter(
+        models.User.id_mitra == str(valid_uuid), 
+        models.User.role.ilike("santri")
+    ).count()
+    
+    return {
+        "total_guru": total_guru,
+        "total_santri": total_santri,
+        "total_user": total_guru + total_santri
+    }
