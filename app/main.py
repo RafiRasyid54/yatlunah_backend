@@ -561,3 +561,24 @@ def get_group_detail(guru_id: str, db: Session = Depends(get_db)):
         "nama_guru": teacher.nama_lengkap if teacher else "Unknown",
         "students": students
     }
+
+@app.get("/mitra/{id_mitra}")
+def get_mitra_info(id_mitra: str, db: Session = Depends(database.get_db)):
+    # 1. Jika id_mitra "0", langsung kembalikan default tanpa query database
+    if id_mitra == "0" or not id_mitra:
+        return {"id": "0", "nama_lembaga": "Lembaga Pusat / Default", "kota": ""}
+        
+    try:
+        # 2. Query ke database
+        mitra = db.query(models.Mitra).filter(models.Mitra.id == id_mitra).first()
+        if not mitra:
+            return {"id": "0", "nama_lembaga": "Lembaga Tidak Ditemukan", "kota": ""}
+            
+        return {
+            "id": str(mitra.id),
+            "nama_lembaga": mitra.nama_lembaga,
+            "kota": mitra.kota
+        }
+    except Exception as e:
+        # 3. Tangkap error jika format UUID tidak valid
+        return {"id": "0", "nama_lembaga": "Format ID Salah", "kota": ""}
