@@ -132,3 +132,10 @@ class ProgresLatihanCreate(BaseModel):
     jilid_id: int
     halaman_latihan: int
     skor: int
+
+# Di dalam app/schemas.py (Tambahkan di bagian paling bawah)
+
+class AssignGroupRequest(BaseModel):
+    mitra_id: str
+    guru_id: str
+    santri_ids: List[str]

@@ -5,6 +5,8 @@ from sqlalchemy.dialects.postgresql import JSONB
 from .database import Base
 
 # --- 1. TABEL USERS ---
+# Di dalam app/models.py
+
 class User(Base):
     __tablename__ = "users"
 
@@ -12,9 +14,13 @@ class User(Base):
     nama_lengkap = Column(String, nullable=False)
     email = Column(String, unique=True, index=True, nullable=False)
     password_hash = Column(String, nullable=False)
-    role_id = Column(Integer, default=1) # 1: Peserta, 2: Guru, 3: Admin
-    role = Column(String, default="peserta") # 'peserta', 'guru', 'admin', 'mitra'
+    role_id = Column(Integer, default=1) 
+    role = Column(String, default="santri") # Set default ke santri
     id_mitra = Column(UUID(as_uuid=True), ForeignKey("mitra.id", ondelete="SET NULL"), nullable=True)
+    
+    # ✅ TAMBAHKAN KOLOM INI UNTUK MAPPING
+    id_guru = Column(UUID(as_uuid=True), ForeignKey("users.user_id", ondelete="SET NULL"), nullable=True)
+    
     created_at = Column(TIMESTAMP, server_default=func.now())
 
 # --- 2. TABEL MITRA ---

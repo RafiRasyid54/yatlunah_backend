@@ -608,3 +608,56 @@ def get_mitra_statistik(id_mitra: str, db: Session = Depends(database.get_db)):
         "total_santri": total_santri,
         "total_user": total_guru + total_santri
     }
+
+# Di dalam app/main.py
+
+@app.post("/mitra/mapping-kelompok")
+def assign_group_mapping(req: schemas.AssignGroupRequest, db: Session = Depends(database.get_db)):
+    try:
+        # 1. Validasi format UUID agar tidak error database
+        mitra_uuid = uuid.UUID(req.mitra_id)
+        guru_uuid = uuid.UUID(req.guru_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Format ID tidak valid")
+
+    # 2. Keamanan: Pastikan Guru yang dikirim benar-benar berstatus "guru" dan dari "mitra" yang sama
+    guru = db.query(models.User).filter(
+        models.User.user_id == str(guru_uuid),
+        models.User.role == "guru",
+        models.User.id_mitra == str(mitra_uuid)
+    ).first()
+
+    if not guru:
+        return {"status": False, "message": "Guru tidak ditemukan atau bukan milik mitra ini."}
+
+    # 3. Keamanan: Filter ID Santri dan pastikan mereka juga dari Mitra yang sama
+    valid_santri_uuids = []
+    for s_id in req.santri_ids:
+        try:
+            valid_santri_uuids.append(str(uuid.UUID(s_id)))
+        except ValueError:
+            pass # Abaikan jika UUID rusak
+
+    if not valid_santri_uuids:
+        return {"status": False, "message": "Tidak ada ID santri yang valid."}
+
+    # Ambil data santri dari database
+    santri_list = db.query(models.User).filter(
+        models.User.user_id.in_(valid_santri_uuids),
+        models.User.role == "santri",
+        models.User.id_mitra == str(mitra_uuid)
+    ).all()
+
+    if not santri_list:
+        return {"status": False, "message": "Santri tidak valid atau bukan dari mitra ini."}
+
+    # 4. Lakukan Update/Mapping (Masukkan id_guru ke akun Santri)
+    for santri in santri_list:
+        santri.id_guru = guru.user_id
+
+    try:
+        db.commit()
+        return {"status": True, "message": "Alhamdulillah, kelompok belajar berhasil disimpan!"}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Gagal menyimpan ke database: " + str(e))
